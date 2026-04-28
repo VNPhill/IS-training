@@ -85,7 +85,8 @@ class CenterNetLoss:
             (total_loss, hmap_loss, size_loss + offset_loss)
         """
         obj_mask = tf.cast(targets['obj_mask'], tf.float32)[..., tf.newaxis]
-        num_obj  = tf.reduce_sum(targets['obj_mask']) + 1e-6
+        # num_obj  = tf.reduce_sum(targets['obj_mask']) + 1e-6
+        num_obj = tf.reduce_sum(tf.cast(targets['obj_mask'], tf.float32)) + 1e-6
 
         # ── Heatmap ───────────────────────────────────────────────────────────
         hmap_loss = CENTERNET_LAMBDA_HMAP * _heatmap_focal_loss(
