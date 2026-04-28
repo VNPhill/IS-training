@@ -149,9 +149,9 @@ CENTERNET_DECONV_CHANNELS = [256, 128, 64]   # channels at each upsample
 
 INPUT_SIZE   = 300
 BATCH_SIZE   = 16
-NUM_EPOCHS   = 200
+NUM_EPOCHS   = 150
 LR_INIT      = 1e-2
-LR_STEPS     = [120, 160]
+LR_STEPS     = [30, 70, 120]
 MOMENTUM     = 0.9
 WEIGHT_DECAY = 5e-4
 
