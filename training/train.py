@@ -23,6 +23,7 @@ import numpy as np
 
 from models  import get_detector, AVAILABLE_MODELS
 from dataset import build_dataset
+from utils.logger import setup_logging
 from config  import (
     NUM_CLASSES_WITH_BG,
     NUM_EPOCHS, BATCH_SIZE,
@@ -93,6 +94,10 @@ def train(model_type:  str,
     data_dir = data_dir or _DATA_DIR
 
     ckpt_dir, log_dir = _make_dirs(model_type)
+
+    # Mirror all terminal output to logs/<model>/train.log
+    log_path = setup_logging(log_dir=log_dir, filename='train.log')
+    print(f'[Train] Terminal output saved to {log_path}')
 
     print(f"\n{'='*65}")
     print(f"  Model   : {model_type}  (width={width})")
@@ -195,10 +200,10 @@ def train(model_type:  str,
             n_steps += 1
 
             if step % 1000 == 0:
-                print(f"  Ep {ep:3d}/{NUM_EPOCHS:3d} step {step:5d} | "
-                f"total={total_l:.4f}  cls={cls_l:.4f}  "
-                f"reg={reg_l:.4f}  lr={new_lr:.2e} | "
-                f"elapsed={time.time() - t0_step:.4f}"
+                print(f"  Ep {ep:3d} step {step:5d} | "
+                      f"total={total_l:.4f}  cls={cls_l:.4f}  "
+                      f"reg={reg_l:.4f}  lr={new_lr:.2e} | "
+                      f"time={time.time() - t0_step:.4f} s/step"
                 )
 
         mean_t   = t_sum   / max(1, n_steps)

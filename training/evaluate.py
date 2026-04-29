@@ -20,6 +20,7 @@ import tensorflow as tf
 
 from models  import get_detector, AVAILABLE_MODELS
 from dataset import load_coco_annotations, parse_coco_boxes
+from utils.logger import setup_logging
 from config  import (
     DATA_DIR, INPUT_SIZE,
     NUM_CLASSES, NUM_CLASSES_WITH_BG,
@@ -85,7 +86,7 @@ def compute_map(model,
         model          : loaded tf.keras.Model
         detector       : corresponding DetectionModel instance
         model_type     : string key used for results path
-        data_dir       : path to ../data/coco/
+        data_dir       : path to data/coco/
         iou_threshold  : TP matching threshold
         conf_threshold : minimum confidence to keep a detection
         nms_iou        : NMS IoU threshold
@@ -229,6 +230,11 @@ def compute_map(model,
 
 if __name__ == '__main__':
     args = _parse_args()
+
+    # Mirror all terminal output to results/<model>/eval.log
+    log_dir  = os.path.join('results', args.model)
+    log_path = setup_logging(log_dir=log_dir, filename='eval.log')
+    print(f'[Eval] Terminal output saved to {log_path}')
 
     ckpt_path = args.ckpt or os.path.join(
         'checkpoints', args.model, 'best_model.weights.h5')
