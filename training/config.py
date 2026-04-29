@@ -236,7 +236,7 @@ COCO_CAT_IDS = [
 ACTIVE_CLASSES = [
     'person',
 
-    'bicycle', 'car', 'motorcycle', 'bus'
+    'bicycle', 'car', 'motorcycle', 'bus',
     
     'traffic light',
     
@@ -244,11 +244,11 @@ ACTIVE_CLASSES = [
     
     'cat', 'dog', 
     
-    'cup', 'fork', 'knife', 'spoon', 'bowl'
+    'cup', 'fork', 'knife', 'spoon', 'bowl',
     
     'chair', 'couch', 'bed', 'dining table',
     
-    'tv', 'laptop',
+    'tv', 'laptop'
 ]
 
 # Validate every active class exists in the full COCO list
