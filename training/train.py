@@ -197,8 +197,8 @@ def train(model_type:  str,
             if step % 1000 == 0:
                 print(f"  Ep {ep:3d}/{NUM_EPOCHS:3d} step {step:5d} | "
                 f"total={total_l:.4f}  cls={cls_l:.4f}  "
-                f"reg={reg_l:.4f}  lr={new_lr:.2e} |"
-                f"elapsed={time.time() - t0_step}"
+                f"reg={reg_l:.4f}  lr={new_lr:.2e} | "
+                f"elapsed={time.time() - t0_step:.4f}"
                 )
 
         mean_t   = t_sum   / max(1, n_steps)
