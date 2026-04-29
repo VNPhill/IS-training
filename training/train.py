@@ -184,6 +184,7 @@ def train(model_type:  str,
         t0 = time.time()
 
         for step, batch in enumerate(train_ds):
+            t0_step = time.time()
             images  = batch[0]
             targets = _prepare_targets(batch, fmt)
             total_l, cls_l, reg_l = _apply_gradients(images, targets)
@@ -195,8 +196,10 @@ def train(model_type:  str,
 
             if step % 1000 == 0:
                 print(f"  Ep {ep:3d}/{NUM_EPOCHS:3d} step {step:5d} | "
-                      f"total={total_l:.4f}  cls={cls_l:.4f}  "
-                      f"reg={reg_l:.4f}  lr={new_lr:.2e}")
+                f"total={total_l:.4f}  cls={cls_l:.4f}  "
+                f"reg={reg_l:.4f}  lr={new_lr:.2e} |"
+                f"elapsed={time.time() - t0_step}"
+                )
 
         mean_t   = t_sum   / max(1, n_steps)
         mean_cls = cls_sum / max(1, n_steps)
