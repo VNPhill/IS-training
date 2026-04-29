@@ -93,8 +93,11 @@ def _encode_fcos_targets(gt_boxes_batch: np.ndarray,
     pos_list   = []
 
     for lvl, (stride, (r_lo, r_hi)) in enumerate(zip(strides, ranges)):
-        H = INPUT_SIZE // stride
-        W = H
+        # H = INPUT_SIZE // stride
+        # W = H
+        feature_sizes = [38, 19, 10, 5, 3]
+        H = feature_sizes[lvl]
+        W = feature_sizes[lvl]
 
         cls_t   = np.zeros((B, H, W, C),  np.float32)
         reg_t   = np.zeros((B, H, W, 4),  np.float32)
