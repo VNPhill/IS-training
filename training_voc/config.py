@@ -150,7 +150,8 @@ TFLITE_PATH    = f'outputs/{MODEL_TYPE}.tflite'
 #   Training  → 2007 trainval  +  2012 trainval  (16,551 images)
 #   Val/Test  → 2007 test                         ( 4,952 images)
 
-VOC_TRAIN_SETS = [('2007', 'trainval'), ('2012', 'trainval')]
+# VOC_TRAIN_SETS = [('2007', 'trainval'), ('2012', 'trainval')]
+VOC_TRAIN_SETS = [('2007', 'trainval')]
 VOC_VAL_SETS   = [('2007', 'test')]
 VOC_TEST_SETS  = [('2007', 'test')]
 
