@@ -117,7 +117,56 @@ class SSDDetector(DetectionModel):
                 np.array(all_scores, np.float32),
                 np.array(all_labels, np.int32))
 
+    def postprocess_tf(self,
+                    predictions,
+                    conf_threshold: float = 0.01,
+                    nms_iou: float = 0.45,
+                    max_dets: int = 200):
+        """TensorFlow-only version for TFLite export"""
 
+        cls_logits, loc_offsets = predictions  # [A,C], [A,4]
+
+        # ── Softmax ─────────────────────────────────────────────
+        probs = tf.nn.softmax(cls_logits, axis=-1)  # [A,C]
+
+        # Remove background class (0)
+        scores = tf.reduce_max(probs[:, 1:], axis=-1)      # [A]
+        labels = tf.argmax(probs[:, 1:], axis=-1) + 1      # [A]
+
+        # ── Decode boxes ────────────────────────────────────────
+        boxes_cxcywh = decode_offsets(loc_offsets, _SSD_ANCHORS)
+
+        x1 = boxes_cxcywh[:, 0] - boxes_cxcywh[:, 2] / 2
+        y1 = boxes_cxcywh[:, 1] - boxes_cxcywh[:, 3] / 2
+        x2 = boxes_cxcywh[:, 0] + boxes_cxcywh[:, 2] / 2
+        y2 = boxes_cxcywh[:, 1] + boxes_cxcywh[:, 3] / 2
+
+        boxes = tf.stack([x1, y1, x2, y2], axis=-1)
+        boxes = tf.clip_by_value(boxes, 0.0, 1.0)
+
+        # ── Confidence filter ───────────────────────────────────
+        mask = scores > conf_threshold
+
+        boxes  = tf.boolean_mask(boxes, mask)
+        scores = tf.boolean_mask(scores, mask)
+        labels = tf.boolean_mask(labels, mask)
+
+        # ── NMS ─────────────────────────────────────────────────
+        selected = tf.image.non_max_suppression(
+            boxes,
+            scores,
+            max_output_size=max_dets,
+            iou_threshold=nms_iou,
+            score_threshold=conf_threshold
+        )
+
+        boxes  = tf.gather(boxes, selected)
+        scores = tf.gather(scores, selected)
+        labels = tf.gather(labels, selected)
+
+        return boxes, scores, labels
+    
+    
 # ─────────────────────────── Registry ────────────────────────────────────────
 
 _REGISTRY: dict = {

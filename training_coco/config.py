@@ -233,22 +233,42 @@ COCO_CAT_IDS = [
 #     'oven',         'refrigerator', 'sink',
 # ]
 
+# ACTIVE_CLASSES = [
+#     'person',
+
+#     'bicycle', 'car', 'motorcycle', 'bus',
+    
+#     'traffic light',
+    
+#     'bench', 
+    
+#     'cat', 'dog', 
+    
+#     'cup', 'fork', 'knife', 'spoon', 'bowl',
+    
+#     'chair', 'couch', 'bed', 'dining table',
+    
+#     'tv', 'laptop'
+# ]
+
 ACTIVE_CLASSES = [
+    # 🚶 Critical awareness
     'person',
 
-    'bicycle', 'car', 'motorcycle', 'bus',
-    
-    'traffic light',
-    
-    'bench', 
-    
-    'cat', 'dog', 
-    
-    'cup', 'fork', 'knife', 'spoon', 'bowl',
-    
+    # 🚗 Vehicles (high priority hazards)
+    'bicycle', 'car', 'motorcycle', 'bus', 'truck',
+
+    # 🚦 Navigation signals
+    'traffic light', 'stop sign',
+
+    # 🪑 Furniture (indoor navigation)
     'chair', 'couch', 'bed', 'dining table',
-    
-    'tv', 'laptop'
+
+    # 🚧 Obstacles
+    'bench',
+
+    # 🔥 Household safety
+    'sink', 'oven'
 ]
 
 # Validate every active class exists in the full COCO list
