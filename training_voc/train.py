@@ -47,11 +47,10 @@ def _parse_args():
                    help='Initial learning rate (default: %(default)s)')
     p.add_argument('--data_dir', default=None,
                    help='Override data directory')
-    p.add_argument('--eval_every', type=int, default=5,
+    p.add_argument('--eval_every', type=int, default=10,
                    help='Run validation every N epochs. '
                         'Set to 1 to validate every epoch (slow), '
-                        '0 to disable validation entirely. '
-                        '(default: 5)')
+                        '0 to disable validation entirely. ')
     return p.parse_args()
 
 
