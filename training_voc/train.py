@@ -20,9 +20,10 @@ import time
 import argparse
 import tensorflow as tf
 import numpy as np
+from tqdm import tqdm
 
-from models  import get_detector, AVAILABLE_MODELS
-from dataset import build_dataset
+from models      import get_detector, AVAILABLE_MODELS
+from dataset     import build_dataset
 from utils.logger import setup_logging
 from config  import (
     NUM_CLASSES_WITH_BG,
@@ -46,6 +47,11 @@ def _parse_args():
                    help='Initial learning rate (default: %(default)s)')
     p.add_argument('--data_dir', default=None,
                    help='Override data directory')
+    p.add_argument('--eval_every', type=int, default=5,
+                   help='Run validation every N epochs. '
+                        'Set to 1 to validate every epoch (slow), '
+                        '0 to disable validation entirely. '
+                        '(default: 5)')
     return p.parse_args()
 
 
@@ -88,6 +94,7 @@ def train(model_type:  str,
           num_epochs:  int,
           batch_size:  int,
           lr_init:     float,
+          eval_every:  int = 5,
           data_dir:    str = None):
 
     from config import DATA_DIR as _DATA_DIR
@@ -101,7 +108,10 @@ def train(model_type:  str,
 
     print(f"\n{'='*65}")
     print(f"  Model   : {model_type}  (width={width})")
+    eval_str = f"every {eval_every} epochs" if eval_every > 1 \
+               else ("every epoch" if eval_every == 1 else "disabled")
     print(f"  Epochs  : {num_epochs}   Batch: {batch_size}   LR: {lr_init}")
+    print(f"  Eval    : {eval_str}")
     print(f"  Ckpts   : {ckpt_dir}")
     print(f"  Logs    : {log_dir}")
     print(f"{'='*65}\n")
@@ -115,7 +125,8 @@ def train(model_type:  str,
     # ── Datasets ─────────────────────────────────────────────────────────────
     fmt      = detector.target_format       # 'ssd' or 'raw'
     train_ds = build_dataset('train', batch_size, data_dir, target_format=fmt)
-    val_ds   = build_dataset('val',   batch_size, data_dir, target_format=fmt)
+    val_ds   = build_dataset('val',   batch_size, data_dir, target_format=fmt) \
+               if eval_every > 0 else None
 
     # ── Optimizer ────────────────────────────────────────────────────────────
     optimizer = tf.keras.optimizers.SGD(
@@ -178,7 +189,10 @@ def train(model_type:  str,
 
     best_val_loss = float('inf')
 
-    for epoch in range(start_epoch, num_epochs):
+    epoch_bar = tqdm(range(start_epoch, num_epochs),
+                     desc="Epochs", unit="epoch",
+                     initial=start_epoch, total=num_epochs)
+    for epoch in epoch_bar:
         ep = epoch + 1
         new_lr = _get_lr(epoch, lr_init)
         optimizer.learning_rate.assign(new_lr)
@@ -188,8 +202,9 @@ def train(model_type:  str,
         n_steps = 0
         t0 = time.time()
 
-        for step, batch in enumerate(train_ds):
-            t0_step = time.time()
+        step_bar = tqdm(enumerate(train_ds), desc=f"  Train ep{ep:3d}",
+                        unit="batch", leave=False)
+        for step, batch in step_bar:
             images  = batch[0]
             targets = _prepare_targets(batch, fmt)
             total_l, cls_l, reg_l = _apply_gradients(images, targets)
@@ -199,53 +214,71 @@ def train(model_type:  str,
             reg_sum += float(reg_l)
             n_steps += 1
 
-            if step % 1000 == 0:
-                print(f"  Ep {ep:3d} step {step:5d} | "
-                      f"total={total_l:.4f}  cls={cls_l:.4f}  "
-                      f"reg={reg_l:.4f}  lr={new_lr:.2e} | "
-                      f"time={time.time() - t0_step:.4f} s/step"
-                )
+            step_bar.set_postfix(
+                total=f"{total_l:.4f}",
+                cls=f"{cls_l:.4f}",
+                reg=f"{reg_l:.4f}",
+                lr=f"{new_lr:.2e}")
 
         mean_t   = t_sum   / max(1, n_steps)
         mean_cls = cls_sum / max(1, n_steps)
         mean_reg = reg_sum / max(1, n_steps)
         elapsed  = time.time() - t0
 
-        # ── Validate ──────────────────────────────────────────────────────
-        v_sum = 0.0
-        n_val = 0
-        for batch in val_ds:
-            images  = batch[0]
-            targets = _prepare_targets(batch, fmt)
-            total_l, _, _ = _val_step(images, targets)
-            v_sum += float(total_l)
-            n_val += 1
-        mean_val = v_sum / max(1, n_val)
+        # ── Validate (only on eval epochs) ───────────────────────────────
+        do_eval  = (eval_every > 0) and (ep % eval_every == 0 or ep == num_epochs)
+        mean_val = None
 
-        print(f"Epoch {ep:3d}/{num_epochs} [{model_type}] | "
-              f"train={mean_t:.4f} (cls={mean_cls:.4f} reg={mean_reg:.4f}) | "
-              f"val={mean_val:.4f} | {elapsed:.0f}s")
+        if do_eval and val_ds is not None:
+            v_sum = 0.0
+            n_val = 0
+            for batch in tqdm(val_ds, desc=f"  Val   ep{ep:3d}",
+                              unit="batch", leave=False):
+                images  = batch[0]
+                targets = _prepare_targets(batch, fmt)
+                total_l, _, _ = _val_step(images, targets)
+                v_sum += float(total_l)
+                n_val += 1
+            mean_val = v_sum / max(1, n_val)
 
+        # ── Epoch summary ─────────────────────────────────────────────────
+        val_str = f"{mean_val:.4f}" if mean_val is not None else "skip"
+        epoch_bar.set_postfix(
+            train=f"{mean_t:.4f}",
+            val=val_str,
+            lr=f"{new_lr:.2e}")
+        tqdm.write(
+            f"Epoch {ep:3d}/{num_epochs} [{model_type}] | "
+            f"train={mean_t:.4f} (cls={mean_cls:.4f} reg={mean_reg:.4f}) | "
+            f"val={val_str} | {elapsed:.0f}s")
+
+        # ── TensorBoard ───────────────────────────────────────────────────
         with train_writer.as_default():
             tf.summary.scalar('loss/total', mean_t,   step=epoch)
             tf.summary.scalar('loss/cls',   mean_cls, step=epoch)
             tf.summary.scalar('loss/reg',   mean_reg, step=epoch)
             tf.summary.scalar('lr',         new_lr,   step=epoch)
-        with val_writer.as_default():
-            tf.summary.scalar('loss/total', mean_val, step=epoch)
+        if mean_val is not None:
+            with val_writer.as_default():
+                tf.summary.scalar('loss/total', mean_val, step=epoch)
 
         # ── Checkpoint ────────────────────────────────────────────────────
-        if mean_val < best_val_loss:
+        # Best-model checkpoint: only possible when we have a val loss
+        if mean_val is not None and mean_val < best_val_loss:
             best_val_loss = mean_val
             best_path = os.path.join(ckpt_dir, 'best_model.weights.h5')
             model.save_weights(best_path)
-            print(f"  ✓ Best model saved  (val_loss={best_val_loss:.4f})")
+            tqdm.write(f"  ✓ Best model saved  (val_loss={best_val_loss:.4f})")
 
+        # Periodic checkpoint: always saved regardless of eval schedule
         if ep % 10 == 0:
             model.save_weights(
                 os.path.join(ckpt_dir, f'epoch_{ep:03d}.weights.h5'))
 
-    print(f"\n[Train] Done — best val loss: {best_val_loss:.4f}")
+    if best_val_loss < float("inf"):
+        print(f"\n[Train] Done — best val loss: {best_val_loss:.4f}")
+    else:
+        print("\n[Train] Done — no validation was run (eval_every=0)")
     return model
 
 
@@ -268,5 +301,6 @@ if __name__ == '__main__':
         num_epochs = args.epochs,
         batch_size = args.batch,
         lr_init    = args.lr,
+        eval_every = args.eval_every,
         data_dir   = args.data_dir,
     )

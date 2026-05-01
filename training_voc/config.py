@@ -115,9 +115,9 @@ CENTERNET_DECONV_CHANNELS = [256, 128, 64]
 
 INPUT_SIZE   = 300
 BATCH_SIZE   = 16       # can use larger batch since VOC is smaller
-NUM_EPOCHS   = 80
-LR_INIT      = 1e-2
-LR_STEPS     = [20, 40, 60, 70] # divide 10x after each epoch
+NUM_EPOCHS   = 200
+LR_INIT      = 1e-1
+LR_STEPS     = [30, 60, 120, 150, 180] # divide 10x after each epoch
 MOMENTUM     = 0.9
 WEIGHT_DECAY = 5e-4
 

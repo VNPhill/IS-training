@@ -23,13 +23,14 @@ and      dataset_voc.py to be active as dataset.py.
 
 import os
 import argparse
+from tqdm import tqdm
 from collections import defaultdict
 
 import numpy as np
 import tensorflow as tf
 
 from models           import get_detector, AVAILABLE_MODELS
-from dataset_voc      import load_voc_image_list, parse_voc_xml
+from dataset          import load_voc_image_list, parse_voc_xml
 from utils.logger     import setup_logging
 from config import (
     DATA_DIR, INPUT_SIZE,
@@ -121,7 +122,7 @@ def compute_map(model,
     # cls_idx → [(img_id, box_xyxy_normalised, is_difficult)]
     ground_truths = defaultdict(list)
 
-    for n, (jpg_path, xml_path) in enumerate(samples):
+    for n, (jpg_path, xml_path) in tqdm(enumerate(samples), desc="Evaluate", total=len(samples), leave=False):
         if (n + 1) % 500 == 0:
             print(f"  [{n + 1}/{len(samples)}] …")
 

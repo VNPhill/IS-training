@@ -5,6 +5,7 @@ data/
 checkpoints/
 logs/
 exports/
+results/
 
 ssd_training/
 

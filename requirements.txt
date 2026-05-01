@@ -1,2 +1,4 @@
 tensorflow[and-cuda]>=2.12
 numpy
+tensorboard
+tqdm

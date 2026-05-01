@@ -13,6 +13,7 @@ Results are saved to  results/<model_type>/map_results.txt .
 
 import os
 import argparse
+from tqdm import tqdm
 from collections import defaultdict
 
 import numpy as np
@@ -39,11 +40,11 @@ def _parse_args():
                    help='Explicit checkpoint path '
                         '(default: checkpoints/<model>/best_model.weights.h5)')
     p.add_argument('--data_dir', default=DATA_DIR)
-    p.add_argument('--iou',      type=float, default=0.5,
+    p.add_argument('--iou',      type=float, default=0.2, # 0.5
                    help='IoU threshold for TP matching (default: 0.50)')
-    p.add_argument('--conf',     type=float, default=0.05,
+    p.add_argument('--conf',     type=float, default=0.005, # 0.05
                    help='Confidence threshold before NMS (default: 0.05)')
-    p.add_argument('--nms_iou',  type=float, default=0.45)
+    p.add_argument('--nms_iou',  type=float, default=0.7) # 0.45
     return p.parse_args()
 
 
@@ -97,8 +98,7 @@ def compute_map(model,
     img_dir  = os.path.join(data_dir, 'val2017')
     ann_json = os.path.join(data_dir, 'annotations', 'instances_val2017.json')
 
-    images_meta, ann_by_img = load_coco_annotations(ann_json)
-    image_ids = list(images_meta.keys())
+    images_meta, ann_by_img, image_ids = load_coco_annotations(ann_json)
 
     print(f"\n[Eval] Model      : {model_type}")
     print(f"[Eval] Val images : {len(image_ids)}")
@@ -107,7 +107,7 @@ def compute_map(model,
     detections    = defaultdict(list)   # cls_idx → [(score, img_id, box)]
     ground_truths = defaultdict(list)   # cls_idx → [(img_id, box_xyxy)]
 
-    for n, img_id in enumerate(image_ids):
+    for n, img_id in tqdm(enumerate(image_ids), desc="Evaluating", total=len(image_ids), leave=False):
         if (n + 1) % 500 == 0:
             print(f"  [{n + 1}/{len(image_ids)}] …")
 
